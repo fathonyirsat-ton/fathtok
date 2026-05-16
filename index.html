@@ -1,44 +1,380 @@
-<?php
-// Izinkan akses dari domain manapun (CORS) agar bisa diakses dari Google Sites/Hosting lain
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
+<!DOCTYPE html>
+<script language="javascript">
+setTimeout(function(){
+   window.location.reload(1);
+}, 30000);
+</script>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Token CBT - KoMa 2026</title>
+    <!-- Tailwind CSS untuk styling yang elegan dan responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Efek latar belakang animasi yang elegan */
+        body {
+            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #0f172a, #172554);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            /* Mencegah seleksi teks secara umum */
+            user-select: none; 
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
 
-// Konfigurasi Database Anda
-$host3       = "localhost:3313";
-$user3       = "root";
-$password3   = "";
-$database3   = "26_cbt";
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
 
-// Membuat koneksi
-$db3 = mysqli_connect($host3, $user3, $password3, $database3);
+        /* Efek Glassmorphism untuk kartu */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
 
-// Cek koneksi
-if (!$db3) {
-    echo json_encode(["status" => "error", "message" => "Koneksi database gagal"]);
-    exit();
-}
+        /* Teks Token yang menyala */
+        .glow-text {
+            text-shadow: 0 0 15px rgba(250, 204, 21, 0.6), 0 0 30px rgba(250, 204, 21, 0.4);
+        }
 
-/**
- * Mengambil token dari tabel fi_bsfsm_aktif
- */
-$query = "SELECT token, tokentime FROM fi_bsfsm_aktif LIMIT 1"; 
+        /* Animasi titik merah berkedip untuk indikator LIVE */
+        @keyframes blink {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .live-dot {
+            animation: blink 1.5s infinite ease-in-out;
+        }
 
-$result = mysqli_query($db3, $query);
+        /* Toast Notifikasi */
+        #toast {
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s linear;
+        }
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100 font-sans flex flex-col antialiased selection:bg-yellow-400 selection:text-slate-900">
 
-if ($result && mysqli_num_rows($result) > 0) {
-    $row = mysqli_fetch_assoc($result);
-    
-    echo json_encode([
-        "status" => "success", 
-        "token" => $row['token'],
-        "tokentime" => $row['tokentime'] // Opsional, dikirimkan jika ingin dipakai di frontend
-    ]);
-} else {
-    echo json_encode([
-        "status" => "error", 
-        "message" => "Token tidak ditemukan di database"
-    ]);
-}
+    <!-- Tombol Fullscreen -->
+    <button onclick="toggleFullScreen()" class="fixed top-4 right-4 z-50 p-2.5 bg-slate-800/50 hover:bg-slate-700/80 text-slate-300 hover:text-white rounded-full backdrop-blur-md border border-white/10 transition-all shadow-lg focus:outline-none group" title="Layar Penuh">
+        <svg id="fullscreen-icon" class="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+        </svg>
+    </button>
 
-mysqli_close($db3);
-?>
+    <!-- Header -->
+    <header class="w-full p-6 text-center z-10 border-b border-white/10 bg-slate-900/40 backdrop-blur-md">
+        <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight text-white mb-2 uppercase">
+            KoMa Tahun 2026
+        </h1>
+        <p class="text-slate-300 text-sm md:text-base font-medium flex items-center justify-center gap-2">
+            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            Sistem Distribusi Token CBT Real-time
+        </p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex items-center justify-center p-4 md:p-8 z-10">
+        <div class="w-full max-w-2xl glass-card rounded-3xl p-8 md:p-12 relative overflow-hidden text-center">
+            
+            <!-- Ornamen Dekoratif Latar Kartu -->
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+            <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-yellow-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+
+            <!-- Jam & Status -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 pb-6 border-b border-white/10 gap-4">
+                <div class="flex items-center space-x-2 bg-slate-800/50 rounded-full px-4 py-2 border border-slate-700">
+                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span id="realtime-clock" class="text-slate-200 font-medium tracking-wider">00:00:00 WIB</span>
+                </div>
+                <div class="flex items-center space-x-2 bg-red-500/10 rounded-full px-4 py-2 border border-red-500/30">
+                    <div class="w-3 h-3 bg-red-500 rounded-full live-dot shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+                    <span class="text-red-400 font-bold text-sm tracking-widest uppercase">Live Update</span>
+                </div>
+            </div>
+
+            <!-- Area Token -->
+            <div class="mb-4">
+                <h2 class="text-slate-400 text-sm md:text-base uppercase tracking-widest mb-4 font-semibold">Token Sesi Saat Ini</h2>
+                
+                <div class="bg-slate-950/60 rounded-2xl py-6 px-4 border border-slate-700/50 shadow-inner mb-6 relative group">
+                    <input type="text" id="token-display" readonly value="MEMUAT..." 
+                        class="w-full bg-transparent text-center font-mono text-5xl md:text-7xl font-bold tracking-[0.25em] text-yellow-400 glow-text outline-none cursor-default selection:bg-transparent transition-all duration-300">
+                    
+                    <!-- Area Tampilan Jam Update Terakhir -->
+                    <div class="mt-4 flex items-center justify-center gap-1.5 text-xs text-slate-400">
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Update Terakhir:</span>
+                        <span id="last-update-time" class="font-semibold text-slate-300 tracking-wide">-</span>
+                    </div>
+
+                    <!-- Pesan error khusus untuk masalah HTTP vs HTTPS -->
+                    <p id="error-hint" class="hidden absolute -bottom-6 left-0 right-0 text-red-400 text-xs font-medium">
+                        Terblokir browser (Mixed Content). Jalankan file HTML ini langsung di server 112.78.44.188
+                    </p>
+                </div>
+
+                <!-- Informasi Pembaruan -->
+                <p class="text-slate-400 text-sm mb-8 flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Penyegaran otomatis dalam: <span id="refresh-timer" class="font-bold text-yellow-300 ml-1">15:00</span>
+                </p>
+
+                <!-- Tombol Salin -->
+                <button onclick="copyToken()" class="group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-full font-bold tracking-wide transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] hover:-translate-y-1 w-full md:w-auto active:scale-95">
+                    <svg class="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    SALIN TOKEN
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full p-4 text-center z-10 border-t border-white/10 bg-slate-900/60 backdrop-blur-md">
+        <p class="text-slate-400 text-xs md:text-sm">
+            &copy; <span id="year"></span> Panitia KoMa 2026. <br class="md:hidden">Semoga sukses mengerjakan ujian.
+        </p>
+    </footer>
+
+    <!-- Notifikasi Toast -->
+    <div id="toast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full font-bold shadow-[0_0_15px_rgba(34,197,94,0.5)] z-50 flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        Token berhasil disalin!
+    </div>
+
+    <!-- Script Logika -->
+    <script>
+        // --- SCRIPT KEAMANAN MENCEGAH KLIK KANAN DAN INSPECT ELEMENT ---
+        
+        // 1. Mencegah klik kanan
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        // 2. Mencegah kombinasi tombol keyboard untuk Developer Tools & View Source
+        document.onkeydown = function(e) {
+            // Memblokir F12
+            if (e.key === 'F12' || e.keyCode === 123) {
+                e.preventDefault();
+                return false;
+            }
+            // Memblokir Ctrl+Shift+I / Cmd+Option+I (Inspect)
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
+                e.preventDefault();
+                return false;
+            }
+            // Memblokir Ctrl+Shift+J / Cmd+Option+J (Console)
+            if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
+                e.preventDefault();
+                return false;
+            }
+            // Memblokir Ctrl+Shift+C / Cmd+Option+C (Inspect Element Mode)
+            if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) {
+                e.preventDefault();
+                return false;
+            }
+            // Memblokir Ctrl+U / Cmd+U (View Page Source)
+            if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
+                e.preventDefault();
+                return false;
+            }
+            // Memblokir Ctrl+S / Cmd+S (Save Page)
+            if (e.ctrlKey && (e.key === 'S' || e.key === 's' || e.keyCode === 83)) {
+                e.preventDefault();
+                return false;
+            }
+        };
+
+        // --- AKHIR SCRIPT KEAMANAN ---
+
+        // Set Tahun Footer
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // 1. Logika Jam Real-time
+        function updateClock() {
+            const now = new Date();
+            const options = { timeZone: 'Asia/Jakarta', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            const timeString = now.toLocaleTimeString('id-ID', options) + ' WIB';
+            document.getElementById('realtime-clock').textContent = timeString;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // 2. Logika Pengambilan Token dari API / Database
+        
+        // Arahkan ke server tempat Anda menyimpan get_token.php
+        const API_URL = "http://112.78.44.188/get_token.php";
+
+        // Fungsi ini sekarang mengembalikan Object berisi token dan waktunya
+        async function fetchTokenFromDatabase() {
+            try {
+                // Menembunyikan pesan error sebelumnya (jika ada)
+                document.getElementById('error-hint').classList.add('hidden');
+
+                // Menambahkan header Accept dan mengabaikan cache agar data selalu baru
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'no-store'
+                });
+                
+                if (!response.ok) throw new Error('Koneksi jaringan bermasalah: ' + response.status);
+                
+                const data = await response.json();
+                
+                // Cek apakah balasan dari PHP berstatus "success"
+                if (data.status === "success") {
+                    // Mengembalikan obyek berisi token dan juga waktu (tokentime)
+                    return { token: data.token, time: data.tokentime };
+                } else {
+                    console.error("Error dari server MySQL:", data.message);
+                    return { token: "DB ERROR", time: null };
+                }
+                
+            } catch (error) {
+                console.error('Gagal mengambil token dari API:', error);
+                
+                // Jika web berjalan di HTTPS (seperti Google Sites) tapi API di HTTP (server lokal IP)
+                if (window.location.protocol === 'https:' && API_URL.startsWith('http:')) {
+                    document.getElementById('error-hint').classList.remove('hidden');
+                }
+                
+                return { token: "OFFLINE", time: null }; // Status ditampilkan jika gagal tersambung
+            }
+        }
+
+        // Variabel untuk timer (15 menit = 900 detik)
+        let timeRemaining = 900; 
+
+        async function updateToken() {
+            const tokenInput = document.getElementById('token-display');
+            const lastUpdateSpan = document.getElementById('last-update-time');
+            
+            // Tampilkan efek memudar dan tulisan memuat
+            tokenInput.style.opacity = '0';
+            setTimeout(() => {
+                tokenInput.value = "MEMUAT...";
+                tokenInput.style.opacity = '0.5';
+                lastUpdateSpan.textContent = "Menyinkronkan...";
+            }, 300);
+
+            // Ambil data baru dari database (berisi token dan time)
+            const result = await fetchTokenFromDatabase();
+            const newToken = result.token;
+            
+            // Format waktu saat ini sebagai fallback jika server tidak mengirimkan tokentime
+            const now = new Date();
+            const fallbackTime = now.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' }) + ' WIB';
+            const displayTime = result.time ? result.time : fallbackTime;
+
+            // Tampilkan token dan waktu baru
+            setTimeout(() => {
+                tokenInput.value = newToken;
+                tokenInput.style.opacity = '1';
+                
+                // Ubah warna merah jika statusnya gagal mengambil
+                if(newToken === "OFFLINE" || newToken === "DB ERROR") {
+                    tokenInput.classList.remove('text-yellow-400', 'glow-text');
+                    tokenInput.classList.add('text-red-500', 'drop-shadow-[0_0_15px_rgba(239,68,68,0.6)]');
+                    lastUpdateSpan.textContent = "Gagal memuat data";
+                    lastUpdateSpan.classList.add('text-red-400');
+                } else {
+                    tokenInput.classList.add('text-yellow-400', 'glow-text');
+                    tokenInput.classList.remove('text-red-500', 'drop-shadow-[0_0_15px_rgba(239,68,68,0.6)]');
+                    lastUpdateSpan.textContent = displayTime;
+                    lastUpdateSpan.classList.remove('text-red-400');
+                }
+            }, 800);
+        }
+
+        function updateTimer() {
+            const timerDisplay = document.getElementById('refresh-timer');
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            if (timeRemaining <= 0) {
+                updateToken();
+                timeRemaining = 900; // Reset ke 15 menit
+            } else {
+                timeRemaining--;
+            }
+        }
+
+        // Inisialisasi awal
+        updateToken();
+        setInterval(updateTimer, 1000);
+
+        // 3. Logika Salin ke Clipboard (Aman untuk iFrame / Google Sites)
+        function copyToken() {
+            const token = document.getElementById('token-display').value;
+            
+            if (token === "MEMUAT..." || token === "OFFLINE" || token === "DB ERROR") {
+                alert("Harap tunggu token yang valid.");
+                return;
+            }
+            
+            const textArea = document.createElement("textarea");
+            textArea.value = token;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if(successful) {
+                    showToast();
+                }
+            } catch (err) {
+                console.error('Tidak dapat menyalin token', err);
+                alert("Gagal menyalin. Silakan blok teks dan salin manual.");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // Menampilkan Notifikasi
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.className = "fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full font-bold shadow-[0_0_15px_rgba(34,197,94,0.5)] z-50 flex items-center gap-2 show";
+            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        // --- SCRIPT FULLSCREEN ---
+        function toggleFullScreen() {
+            const doc = window.document;
+            const docEl = doc.documentElement;
+
+            const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                if(requestFullScreen) {
+                    requestFullScreen.call(docEl);
+                }
+            }
+            else {
+                if(cancelFullScreen) {
+                    cancelFullScreen.call(doc);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
